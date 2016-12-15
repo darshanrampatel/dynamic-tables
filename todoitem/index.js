@@ -1,7 +1,7 @@
 ﻿/**
  * Routes the request to the table controller to the correct method.
  *
- * @param {Fucntion.Context} context - the table controller context
+ * @param {Function.Context} context - the table controller context
  * @param {Express.Request} req - the actual request
  */
 function tableRouter(context, req) {
@@ -34,11 +34,8 @@ function tableRouter(context, req) {
             break;
 
         default:
-            res.sendStatus(405).json({ error: "Operation not supported", message: `Method ${req.method} not supported`})
+            res.status(405).json({ error: "Operation not supported", message: `Method ${req.method} not supported`})
     }
-
-    // Complete the request
-    context.done();
 }
 
 function getOneItem(req, res, id) {
