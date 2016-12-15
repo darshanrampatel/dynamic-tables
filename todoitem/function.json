@@ -1,0 +1,18 @@
+﻿{
+    "disabled": false,
+    "bindings": [
+        {
+            "name": "req",
+            "type": "httpTrigger",
+            "direction": "in",
+            "authLevel": "function",
+            "methods": [ "GET", "POST", "PATCH", "DELETE" ],
+            "route": "tables/todoitem/{id:alpha?}"
+        },
+        {
+            "type": "http",
+            "direction": "out",
+            "name": "res"
+        }
+    ]
+}
