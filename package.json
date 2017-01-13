@@ -1,0 +1,26 @@
+{
+  "name": "dynamic-tables",
+  "version": "1.0.0",
+  "description": "A POC for an Azure Functions based tables implementation",
+  "main": "index.js",
+  "scripts": {
+    "start": "func run test-func --debug"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/adrianhall/dynamic-tables.git"
+  },
+  "keywords": [
+    "azure"
+  ],
+  "author": "Adrian Hall <adrian@shellmonger.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/adrianhall/dynamic-tables/issues"
+  },
+  "homepage": "https://github.com/adrianhall/dynamic-tables#readme",
+  "dependencies": {
+    "bluebird": "^3.4.6",
+    "documentdb": "^1.10.0"
+  }
+}
