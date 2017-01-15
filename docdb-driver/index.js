@@ -34,10 +34,10 @@ module.exports = {
     changeOfferType: Promise.promisify(collection.changeOfferType),
     deleteCollection: Promise.promisify(collection.deleteCollection),
 
-    createDatabase: Promise.promisify(database.createDatabase),
+    createDatabase: createDatabase,
     deleteDatabase: Promise.promisify(database.deleteDatabase),
     ensureDatabaseExists: ensureDatabaseExists,
-    findDatabaseById: Promise.promisify(database.ensureDatabaseExists),
+    findDatabaseById: findDatabaseById,
     listDatabases: Promise.promisify(database.listDatabases),
     readDatabase: Promise.promisify(database.readDatabase),
     readDatabases: Promise.promisify(database.readDatabases),

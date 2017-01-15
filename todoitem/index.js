@@ -68,7 +68,7 @@ function initialize(context) {
         context.log('[initialize] Already initialized');
     }
 
-    context.log('[initialize] Creating DocumentDb client');
+    context.log(`[initialize] Creating DocumentDb client ${settings.host} # ${settings.accountKey}`);
     refs.client = new DocumentDb.DocumentClient(
         settings.host,
         { masterKey: settings.accountKey },
@@ -76,7 +76,7 @@ function initialize(context) {
         settings.consistencyLevel
     );
 
-    context.log('[initialize] Initializing Table');
+    context.log(`[initialize] EnsureDatabaseExists ${settings.database}`);
     return driver.ensureDatabaseExists(refs.client, settings.database)
         .then((dbRef) => {
             context.log(`[initialize] Initialized Database ${settings.database}`);
@@ -87,7 +87,8 @@ function initialize(context) {
         .then((collections) => {
             context.log(`[initialize] Found ${collections.length} collections`);
             const collection = collections.find(c => { return (c.id === settings.table); });
-            if (collection !== 'undefined') return collection;
+            context.log(`[initialize] Collection = ${JSON.stringify(collection)}`);
+            if (typeof collection !== 'undefined') return collection;
             context.log(`[initialize] Creating collection ${settings.table}`);
             return driver.createCollection(refs.client, settings.pricingTier, refs.database, settings.table);
         })
