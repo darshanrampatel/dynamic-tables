@@ -1,5 +1,6 @@
 ﻿var DocumentDb = require('documentdb');
 var driver = require('../docdb-driver');
+var moment = require('moment');
 
 /**
  * Global Settings Object
@@ -52,7 +53,7 @@ function tableRouter(context, req) {
                 break;
 
             default:
-                res.status(405).json({ error: "Operation not supported", message: `Method ${req.method} not supported`})
+                res.status(405).json({ error: 'Operation not supported', message: `Method ${req.method} not supported`})
         }
     });
 }
@@ -101,23 +102,97 @@ function initialize(context) {
 }
 
 function getOneItem(req, res, id) {
-    res.status(200).json({ id: id, message: "getOne" });
+    res.status(200).json({ id: id, message: 'getOne' });
 }
 
 function getAllItems(req, res) {
-    res.status(200).json({ query: req.query, message: "getAll" });
+    res.status(200).json({ query: req.query, message: 'getAll' });
 }
 
 function insertItem(req, res) {
-    res.status(200).json({ body: req.body, message: "insert"});
+    // req.body is the JSON object we need to process
+    var item = req.body;
+
+    // There are five 'special' fields in a record
+
+    // The following are handled for us - don't do anything!
+    //      id - if it is provided, it must not already exist in the database
+    //      version - do not provide.  This is provided by the server - this is the _etag field
+    //      updatedAt - do not provide.  This is provided by the server - this is the _ts field (converted)
+
+    // The following are not handled for us, so we have to work at them
+    //      createdAt - do not provide.  We do this for the user
+    item.createdAt = moment().toISOString();
+    //      deleted - set to false if it is not provided or is not boolean
+    if (!item.hasOwnProperty('deleted')) item.deleted = false;
+
+    driver.createDocument(refs.client, refs.table, item)
+    .then((document) => {
+        res.status(201).json(convertItem(document));
+    })
+    .catch((error) => {
+        res.status(error.code).json(convertError(error));
+    });
 }
 
 function replaceItem(req, res, id) {
-    res.status(200).json({ body: req.body, id: id, message: "replace" });
+    res.status(200).json({ body: req.body, id: id, message: 'replace' });
 }
 
 function deleteItem(req, res, id) {
-    res.status(200).json({ id: id, message: "delete" });
+    res.status(200).json({ id: id, message: 'delete' });
+}
+
+/**
+ * Given an item from DocumentDB, convert it into something that the service can used
+ * @param {object} item the original item
+ * @return {object} the new item
+ */
+function convertItem(item) {
+    if (item.hasOwnProperty('_ts')) {
+        item.updatedAt = moment.unix(item._ts).toISOString();
+        delete item._ts;
+    } else {
+        throw new Error('Invalid item - no _ts field');
+    }
+
+    if (item.hasOwnProperty('_etag')) {
+        item.version = new Buffer(item._etag).toString('base64');
+        delete item._etag;
+    } else {
+        throw new Error('Invalid item - no _etag field');
+    }
+
+    // Delete all the known fields from documentdb
+    if (item.hasOwnProperty('_rid')) delete item._rid;
+    if (item.hasOwnProperty('_self')) delete item._self;
+    if (item.hasOwnProperty('_attachments')) delete item._attachments;
+
+    return item;
+}
+
+/**
+ * Convert a DocumentDB error into something intelligible
+ * @param {Error} error the error object
+ * @return {object} the intelligible error object
+ */
+function convertError(error) {
+    var body = JSON.parse(error.body);
+    if (body.hasOwnProperty("message")) {
+        var msg = body.message.replace(/^Message:\s+/, '').split(/\r\n/);
+        body.errors = JSON.parse(msg[0]).Errors;
+
+        var addl = msg[1].split(/,\s*/);
+        addl.forEach((t) => {
+            var tt = t.split(/:\s*/);
+            tt[0] = tt[0].replace(/\s/, '').toLowerCase();
+            body[tt[0]] = tt[1];
+        });
+
+        delete body.message;
+    }
+
+    return body;
 }
 
 module.exports = tableRouter;
