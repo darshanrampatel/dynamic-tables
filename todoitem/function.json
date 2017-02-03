@@ -7,7 +7,7 @@
             "direction": "in",
             "authLevel": "function",
             "methods": [ "GET", "POST", "PUT", "DELETE" ],
-            "route": "tables/todoitem/{id:alpha?}"
+            "route": "tables/todoitem/{id?}"
         },
         {
             "type": "http",

@@ -5,9 +5,29 @@ var moment = require('moment');
 /**
  * Global Settings Object
  */
+// default settings come from: 
+//      1) The ../settings.local.json file, if it exists
+//      2) The DocumentDb environment variable if it exists (overrides)
+var defaultSettings = {
+    host: null,
+    accountKey: null
+};
+try {
+    defaultSettings = require('../settings.local.json');
+} catch(ex) { /* Swallow the error */ }
+if (process.env.hasOwnProperty('DocumentDb')) {
+    var sp = process.env.DocumentDb.split(';');
+    sp.forEach((t) => {
+        var tt = t.split('=');
+        if (tt[0] === 'AccountEndpoint') defaultSettings.host = tt[1];
+        if (tt[0] === 'AccountKey') defaultSettings.accountKey = tt[1];
+    })
+
+}
+
 var settings = {
-    host: process.env['DocumentDbHost'],
-    accountKey: process.env['DocumentDbAccountKey'],
+    host: process.env['DocumentDbHost'] || defaultSettings.host,
+    accountKey: process.env['DocumentDbAccountKey'] || defaultSettings.accountKey,
     database: 'AzureMobile',
     connectionPolicy: undefined,
     consistencyLevel: 'Session',
@@ -28,7 +48,7 @@ var refs = {
  */
 function tableRouter(context, req) {
     var res = context.res;
-    var id = context.bindings.id;
+    var id = req.params.id;
 
     initialize(context).then(() => {
         switch (req.method) {
@@ -102,7 +122,16 @@ function initialize(context) {
 }
 
 function getOneItem(req, res, id) {
-    res.status(200).json({ id: id, message: 'getOne' });
+    driver.fetchDocument(refs.client, refs.table, id)
+    .then((document) => {
+        if (typeof document === 'undefined')
+            res.status(404).json({ 'error': 'Not Found' });
+        else
+            res.status(200).json(convertItem(document));
+    })
+    .catch((error) => {
+        res.status(error.code).json(convertError(error));
+    });
 }
 
 function getAllItems(req, res) {
@@ -110,20 +139,11 @@ function getAllItems(req, res) {
 }
 
 function insertItem(req, res) {
-    // req.body is the JSON object we need to process
     var item = req.body;
 
-    // There are five 'special' fields in a record
-
-    // The following are handled for us - don't do anything!
-    //      id - if it is provided, it must not already exist in the database
-    //      version - do not provide.  This is provided by the server - this is the _etag field
-    //      updatedAt - do not provide.  This is provided by the server - this is the _ts field (converted)
-
-    // The following are not handled for us, so we have to work at them
-    //      createdAt - do not provide.  We do this for the user
     item.createdAt = moment().toISOString();
-    //      deleted - set to false if it is not provided or is not boolean
+    delete item.updatedAt;
+    delete item.version;
     if (!item.hasOwnProperty('deleted')) item.deleted = false;
 
     driver.createDocument(refs.client, refs.table, item)
@@ -136,11 +156,64 @@ function insertItem(req, res) {
 }
 
 function replaceItem(req, res, id) {
-    res.status(200).json({ body: req.body, id: id, message: 'replace' });
+    driver.fetchDocument(refs.client, refs.table, id)
+    .then((document) => {
+        if (typeof document === 'undefined') {
+            res.status(404).json({ 'error': 'Not Found' });
+            return;
+        }
+
+        var item = req.body, version = new Buffer(document._etag).toString('base64')
+        if (item.id !== id) {
+            res.status(400).json({ 'error': 'Id does not match' });
+            return;
+        }
+
+        if (req.headers.hasOwnProperty('if-match') && req.header['if-match'] !== version) {
+            res.status(412).json({ 'current': version, 'new': item.version, 'error': 'Version Mismatch' })
+            return;
+        }
+
+        if (item.hasOwnProperty('version') && item.version !== version) {
+            res.status(409).json({ 'current': version, 'new': item.version, 'error': 'Version Mismatch' });
+            return;
+        }
+
+        // Delete the version and updatedAt fields from the doc before submitting
+        delete item.updatedAt;
+        delete item.version;
+        driver.replaceDocument(refs.client, document._self, item)
+        .then((updatedDocument) => {
+            res.status(200).json(convertItem(updatedDocument));
+            return;
+        });
+    })
+    .catch((error) => {
+        res.status(error.code).json(convertError(error));
+    });
 }
 
 function deleteItem(req, res, id) {
-    res.status(200).json({ id: id, message: 'delete' });
+    driver.fetchDocument(refs.client, refs.table, id)
+    .then((document) => {
+        if (typeof document === 'undefined') {
+            res.status(404).json({ 'error': 'Not Found' });
+            return;
+        }
+
+        var item = convertItem(document);
+        delete item.updatedAt;
+        delete item.version;
+        item.deleted = true;
+        driver.replaceDocument(refs.client, document._self, item)
+        .then((updatedDocument) => {
+            res.status(200).json(convertItem(updatedDocument));
+            return;
+        });
+    })
+    .catch((error) => {
+        res.status(error.code).json(convertError(error));
+    });
 }
 
 /**
@@ -178,7 +251,7 @@ function convertItem(item) {
  */
 function convertError(error) {
     var body = JSON.parse(error.body);
-    if (body.hasOwnProperty("message")) {
+    if (body.hasOwnProperty('message')) {
         var msg = body.message.replace(/^Message:\s+/, '').split(/\r\n/);
         body.errors = JSON.parse(msg[0]).Errors;
 

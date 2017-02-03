@@ -42,5 +42,8 @@ module.exports = {
     readDatabase: Promise.promisify(database.readDatabase),
     readDatabases: Promise.promisify(database.readDatabases),
 
-    createDocument: Promise.promisify(docops.createDocument)
+    createDocument: Promise.promisify(docops.createDocument),
+    fetchDocument: Promise.promisify(docops.fetchDocument),
+    readDocument: Promise.promisify(docops.readDocument),
+    replaceDocument: Promise.promisify(docops.replaceDocument)
 };
