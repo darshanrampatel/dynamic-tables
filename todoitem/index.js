@@ -135,6 +135,19 @@ function getOneItem(req, res, id) {
 }
 
 function getAllItems(req, res) {
+    var queryjs = require('azure-query-js').Query.Providers.OData;
+    var odataSql = require('azure-odata-sql');
+
+    var query = queryjs.fromOData(settings.table,
+        req.query.$filter,
+        req.query.$orderby,
+        parseInt(req.query.$skip),
+        parseInt(req.query.$top),
+        req.query.$select,
+        req.query.$inlinecount === 'allpages',
+        !!req.query.__includeDeleted);
+    var sql = odataSql.format(query, tableConfig);
+    
     res.status(200).json({ query: req.query, message: 'getAll' });
 }
 
