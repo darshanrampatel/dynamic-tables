@@ -124,7 +124,7 @@ function initialize(context) {
 function getOneItem(req, res, id) {
     driver.fetchDocument(refs.client, refs.table, id)
     .then((document) => {
-        if (typeof document === 'undefined')
+        if (typeof document === 'undefined' || document.deleted === true)
             res.status(404).json({ 'error': 'Not Found' });
         else
             res.status(200).json(convertItem(document));
@@ -170,12 +170,12 @@ function replaceItem(req, res, id) {
         }
 
         if (req.headers.hasOwnProperty('if-match') && req.header['if-match'] !== version) {
-            res.status(412).json({ 'current': version, 'new': item.version, 'error': 'Version Mismatch' })
+            res.status(412).json(convertItem(document))
             return;
         }
 
         if (item.hasOwnProperty('version') && item.version !== version) {
-            res.status(409).json({ 'current': version, 'new': item.version, 'error': 'Version Mismatch' });
+            res.status(409).json(convertItem(document));
             return;
         }
 
