@@ -1,6 +1,8 @@
 ﻿var DocumentDb = require('documentdb');
 var driver = require('../docdb-driver');
 var moment = require('moment');
+var OData = require('azure-query-js').Query.Providers.OData;
+var formatSql = require('../odata-sql').format;
 
 /**
  * Global Settings Object
@@ -135,10 +137,8 @@ function getOneItem(req, res, id) {
 }
 
 function getAllItems(req, res) {
-    var queryjs = require('azure-query-js').Query.Providers.OData;
-    var odataSql = require('azure-odata-sql');
-
-    var query = queryjs.fromOData(settings.table,
+    var query = OData.fromOData(
+        settings.table,         // todoitem
         req.query.$filter,
         req.query.$orderby,
         parseInt(req.query.$skip),
@@ -146,9 +146,12 @@ function getAllItems(req, res) {
         req.query.$select,
         req.query.$inlinecount === 'allpages',
         !!req.query.__includeDeleted);
-    var sql = odataSql.format(query, tableConfig);
+    var tableConfig = {
+        name: settings.table
+    };
+    var sql = formatSql(query, tableConfig);
     
-    res.status(200).json({ query: req.query, message: 'getAll' });
+    res.status(200).json({ query: req.query, sql: sql, message: 'getAll' });
 }
 
 function insertItem(req, res) {
