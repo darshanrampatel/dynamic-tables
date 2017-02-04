@@ -149,7 +149,7 @@ function getAllItems(req, res) {
     var tableConfig = {
         name: settings.table
     };
-    var sql = formatSql(query, tableConfig);
+    var sql = formatSql(OData.toOData(query), tableConfig);
     
     res.status(200).json({ query: req.query, sql: sql, message: 'getAll' });
 }
