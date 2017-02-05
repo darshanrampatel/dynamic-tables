@@ -137,19 +137,24 @@ function getOneItem(req, res, id) {
 }
 
 function getAllItems(req, res) {
+    // Fix the $filter so that updatedAt becomes _ts and the value becomes a timestamp
+    
+
+    // DoumentDB doesn't support SKIP yet, so we can't do TOP either
     var query = OData.fromOData(
-        settings.table,         // todoitem
+        settings.table,
         req.query.$filter,
         req.query.$orderby,
-        parseInt(req.query.$skip),
-        parseInt(req.query.$top),
+        undefined, //parseInt(req.query.$skip),
+        undefined, //parseInt(req.query.$top),
         req.query.$select,
         req.query.$inlinecount === 'allpages',
         !!req.query.__includeDeleted);
-    var tableConfig = {
-        name: settings.table
-    };
-    var sql = formatSql(OData.toOData(query), tableConfig);
+
+    var sql = formatSql(OData.toOData(query), {
+        containerName: settings.table,
+        flavor: 'documentdb'
+    });
     
     res.status(200).json({ query: req.query, sql: sql, message: 'getAll' });
 }
