@@ -44,6 +44,7 @@ module.exports = {
 
     createDocument: Promise.promisify(docops.createDocument),
     fetchDocument: Promise.promisify(docops.fetchDocument),
+    queryDocuments: Promise.promisify(docops.queryDocuments),
     readDocument: Promise.promisify(docops.readDocument),
     replaceDocument: Promise.promisify(docops.replaceDocument)
 };

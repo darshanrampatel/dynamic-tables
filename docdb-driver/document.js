@@ -15,6 +15,10 @@ module.exports = {
         client.queryDocuments(collectionRef._self, querySpec).current(callback);
     },
 
+    queryDocuments: function (client, collectionRef, query, callback) {
+        client.queryDocuments(collectionRef._self, query).toArray(callback);
+    },
+    
     readDocument: function (client, docLink, options, callback) {
         client.readDocument(docLink, options, callback);
     },

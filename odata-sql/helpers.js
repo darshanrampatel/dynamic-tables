@@ -41,13 +41,16 @@ var helpers = module.exports = {
 
         this.validateIdentifier(tableName);
 
-        if (schemaName !== undefined) {
-            schemaName = module.exports.formatSchemaName(schemaName);
-            this.validateIdentifier(schemaName);
-            return '[' + schemaName + '].[' + tableName + ']';
-        }
+// XXX-DOCUMENTDB
+        //if (schemaName !== undefined) {
+        //    schemaName = module.exports.formatSchemaName(schemaName);
+        //    this.validateIdentifier(schemaName);
+        //    return '[' + schemaName + '].[' + tableName + ']';
+        //}
 
-        return '[' + tableName + ']';
+        //return '[' + tableName + ']';
+// XXX-DOCUMENTDB
+        return tableName;
     },
 
     formatSchemaName: function (appName) {
@@ -57,7 +60,10 @@ var helpers = module.exports = {
 
     formatMember: function (memberName) {
         this.validateIdentifier(memberName);
-        return '[' + memberName + ']';
+// XXX-DOCUMENTDB
+        //return '[' + memberName + ']';
+// XXX-DOCUMENTDB
+        return memberName;
     },
 
     getSqlType: function (value, primaryKey) {

@@ -137,8 +137,22 @@ function getOneItem(req, res, id) {
 }
 
 function getAllItems(req, res) {
-    // Fix the $filter so that updatedAt becomes _ts and the value becomes a timestamp
-    
+    // Adjust the query parameters for DocumentDB
+    if (req.query.$filter) {
+        while (/updatedAt [a-z]+ '[^']+'/.test(req.query.$filter)) {
+            var re = new RegExp(/updatedAt ([a-z]+) '([^']+)'/);
+            var results = re.exec(req.query.$filter);
+            var newDate = moment(results[2]).unix();
+            var newString = `_ts ${results[1]} ${newDate}`;
+            req.query.$filter = req.query.$filter.replace(results[0], newString);
+        }
+    }
+    // Remove the updatedAt from the request
+    if (req.query.$select) {
+        req.query.$select = req.query.$select.replace(/,{0,1}updatedAt/g, '');
+    }
+
+    console.log(JSON.stringify(req.query, null, 2));
 
     // DoumentDB doesn't support SKIP yet, so we can't do TOP either
     var query = OData.fromOData(
@@ -155,8 +169,33 @@ function getAllItems(req, res) {
         containerName: settings.table,
         flavor: 'documentdb'
     });
-    
-    res.status(200).json({ query: req.query, sql: sql, message: 'getAll' });
+
+    // Fix up the parameters for the DocumentDB driver
+
+
+    // There are two cases - one for inline count and one without inline count.
+    if (sql.length == 2) {
+        // With inline count
+
+
+    } else {
+        // Without inline count
+
+        // Fix up the object
+        sql[0].query = sql[0].sql;
+        sql[0].parameters.forEach((value, index) => {
+            sql[0].parameters[index] = `@${value}`;
+        });
+
+        // Execute the query
+        driver.queryDocuments(refs.client, refs.table, sql[0])
+        .then((documents) => {
+            res.status(200).json(documents);
+        })
+        .catch((error) => {
+            res.status(400).json(error);
+        });
+    }
 }
 
 function insertItem(req, res) {
