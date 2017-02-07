@@ -152,8 +152,6 @@ function getAllItems(req, res) {
         req.query.$select = req.query.$select.replace(/,{0,1}updatedAt/g, '');
     }
 
-    console.log(JSON.stringify(req.query, null, 2));
-
     // DoumentDB doesn't support SKIP yet, so we can't do TOP either
     var query = OData.fromOData(
         settings.table,
@@ -170,32 +168,36 @@ function getAllItems(req, res) {
         flavor: 'documentdb'
     });
 
-    // Fix up the parameters for the DocumentDB driver
+    // Fix up the object so that the SQL object matches what DocumentDB expects
+    sql[0].query = sql[0].sql;
+    sql[0].parameters.forEach((value, index) => {
+        sql[0].parameters[index].name = `@${value.name}`;
+    });
 
-
-    // There are two cases - one for inline count and one without inline count.
-    if (sql.length == 2) {
-        // With inline count
-
-
-    } else {
-        // Without inline count
-
-        // Fix up the object
-        sql[0].query = sql[0].sql;
-        sql[0].parameters.forEach((value, index) => {
-            sql[0].parameters[index] = `@${value}`;
+    // Execute the query
+    console.log(JSON.stringify(sql[0], null, 2));
+    driver.queryDocuments(refs.client, refs.table, sql[0])
+    .then((documents) => {
+        documents.forEach((value, index) => {
+            documents[index] = convertItem(value);
         });
 
-        // Execute the query
-        driver.queryDocuments(refs.client, refs.table, sql[0])
-        .then((documents) => {
+        if (sql.length == 2) {
+            // We requested $inlinecount == allpages.  This means we have
+            // to adjust the output to include a count/results field.  It's
+            // used for paging, which DocumentDB doesn't support yet.  As
+            // a result, this is a hacky way of doing this.
+            res.status(200).json({
+                results: documents,
+                count: documents.length
+            });
+        } else {
             res.status(200).json(documents);
-        })
-        .catch((error) => {
-            res.status(400).json(error);
-        });
-    }
+        }
+    })
+    .catch((error) => {
+        res.status(400).json(error);
+    });
 }
 
 function insertItem(req, res) {

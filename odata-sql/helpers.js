@@ -50,7 +50,7 @@ var helpers = module.exports = {
 
         //return '[' + tableName + ']';
 // XXX-DOCUMENTDB
-        return tableName;
+        return "c";
     },
 
     formatSchemaName: function (appName) {
@@ -63,7 +63,7 @@ var helpers = module.exports = {
 // XXX-DOCUMENTDB
         //return '[' + memberName + ']';
 // XXX-DOCUMENTDB
-        return memberName;
+        return `c.${memberName}`;
     },
 
     getSqlType: function (value, primaryKey) {
